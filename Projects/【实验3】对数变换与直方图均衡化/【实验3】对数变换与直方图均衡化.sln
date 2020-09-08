@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2026
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "【实验3】对数变换与直方图均衡化", "【实验3】对数变换与直方图均衡化\【实验3】对数变换与直方图均衡化.vcxproj", "{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Debug|x64.ActiveCfg = Debug|x64
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Debug|x64.Build.0 = Debug|x64
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Debug|x86.ActiveCfg = Debug|Win32
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Debug|x86.Build.0 = Debug|Win32
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Release|x64.ActiveCfg = Release|x64
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Release|x64.Build.0 = Release|x64
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Release|x86.ActiveCfg = Release|Win32
+		{FC13F67F-B210-49C6-B7A0-081AF3E64D5B}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C99F2120-4AC8-4D2E-929F-961D709C23F7}
+	EndGlobalSection
+EndGlobal

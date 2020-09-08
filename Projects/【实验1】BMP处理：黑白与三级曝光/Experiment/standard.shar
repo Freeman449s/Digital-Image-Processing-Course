@@ -1,0 +1,2264 @@
+#! /bin/sh
+# This is a shell archive.  Remove anything before this line, then unpack
+# it by saving it into a file and typing "sh file".  To overwrite existing
+# files, type "sh file -c".  You can also feed this as standard input via
+# unshar, or by typing "sh <file", e.g..  If this archive is complete, you
+# will see the following message at the end:
+#		"End of shell archive."
+# Contents:  cslib cslib/Makefile cslib/exception.c cslib/exception.h
+#   cslib/gcalloc.h cslib/genlib.c cslib/genlib.h cslib/graphics.c
+#   cslib/graphics.h cslib/random.c cslib/random.h cslib/simpio.c
+#   cslib/simpio.h cslib/strlib.c cslib/strlib.h
+# Wrapped by eroberts@Eeyore.Stanford.EDU on Fri Feb 24 19:44:56 1995
+PATH=/bin:/usr/bin:/usr/ucb ; export PATH
+if test ! -d 'cslib' ; then
+    echo shar: Creating directory \"'cslib'\"
+    mkdir 'cslib'
+fi
+if test -f 'cslib/Makefile' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/Makefile'\"
+else
+echo shar: Extracting \"'cslib/Makefile'\" \(2146 characters\)
+sed "s/^X//" >'cslib/Makefile' <<'END_OF_FILE'
+X# Makefile for cslib/standard directory
+X# Last modified on Thu Oct 20 13:49:04 1994 by eroberts
+X#****************************************************************
+X
+XOBJECTS = \
+X    genlib.o \
+X    exception.o \
+X    strlib.o \
+X    simpio.o \
+X    random.o \
+X    graphics.o
+X
+XCSLIB = cslib.a
+X
+XCC = gcc
+XCFLAGS = -g -I. $(CCFLAGS)
+X
+X# ***************************************************************
+X# Entry to bring the package up to date
+X#    The "make all" entry should be the first real entry
+X
+Xall: $(CSLIB) gccx
+X
+X# ***************************************************************
+X# Standard entries to remove files from the directories
+X#    tidy    -- eliminate unwanted files
+X#    clean   -- delete derived files in preparation for rebuild
+X#    scratch -- synonym for clean
+X
+Xtidy:
+X	rm -f ,* .,* *~ core a.out *.err
+X
+Xclean scratch: tidy
+X	rm -f *.o *.a gccx
+X
+X# ***************************************************************
+X# C compilations
+X
+Xgenlib.o: genlib.c genlib.h exception.h gcalloc.h
+X	$(CC) $(CFLAGS) -c genlib.c
+X
+Xexception.o: exception.c exception.h genlib.h
+X	$(CC) $(CFLAGS) -c exception.c
+X
+Xstrlib.o: strlib.c strlib.h genlib.h
+X	$(CC) $(CFLAGS) -c strlib.c
+X
+Xsimpio.o: simpio.c simpio.h strlib.h genlib.h
+X	$(CC) $(CFLAGS) -c simpio.c
+X
+Xgraphics.o: graphics.c graphics.h genlib.h
+X	$(CC) $(CFLAGS) -c graphics.c
+X
+Xrandom.o: random.c random.h genlib.h
+X	$(CC) $(CFLAGS) -c random.c
+X
+X# ***************************************************************
+X# Entry to reconstruct the library archive
+X
+X$(CSLIB): $(OBJECTS)
+X	-rm -f $(CSLIB)
+X	ar cr $(CSLIB) $(OBJECTS)
+X	ranlib $(CSLIB)
+X
+X# ***************************************************************
+X# Entry to reconstruct the gccx script
+X
+Xgccx: Makefile
+X	@echo '#! /bin/csh -f' > gccx
+X	@echo 'set INCLUDE =' `pwd` >> gccx
+X	@echo 'set CSLIB = $$INCLUDE/cslib.a' >> gccx
+X	@echo 'set LIBRARIES = ($$CSLIB -lm)' >> gccx
+X	@echo 'foreach x ($$*)' >> gccx
+X	@echo '  if ("x$$x" == "x-c") then' >> gccx
+X	@echo '    set LIBRARIES = ""' >> gccx
+X	@echo '    break' >> gccx
+X	@echo '  endif' >> gccx
+X	@echo 'end' >> gccx
+X	@echo 'gcc -g -I$$INCLUDE $$* $$LIBRARIES' >> gccx
+X	@chmod a+x gccx
+X	@echo '[gccx script created]'
+END_OF_FILE
+if test 2146 -ne `wc -c <'cslib/Makefile'`; then
+    echo shar: \"'cslib/Makefile'\" unpacked with wrong size!
+fi
+# end of 'cslib/Makefile'
+fi
+if test -f 'cslib/exception.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/exception.c'\"
+else
+echo shar: Extracting \"'cslib/exception.c'\" \(3276 characters\)
+sed "s/^X//" >'cslib/exception.c' <<'END_OF_FILE'
+X/*
+X * File: exception.c
+X * Version: 1.0
+X * Last modified on Sun Jul 24 10:28:11 1994 by eroberts
+X * -----------------------------------------------------
+X * This file implements the C exception handler.  Much of the
+X * real work is done in the exception.h header file.
+X */
+X
+X#include <stdio.h>
+X#include <stdarg.h>
+X
+X#include "genlib.h"
+X#include "gcalloc.h"
+X#include "exception.h"
+X
+X/*
+X * Constant: MaxUnhandledMessage
+X * -----------------------------
+X * This constant should be large enough to accommodate the
+X * unhandled exception message, including the exception name.
+X */
+X
+X#define MaxUnhandledMessage 100
+X
+X/* Publically accessible exceptions */
+X
+Xexception ANY = { "ANY" };
+Xexception ErrorException = { "ErrorException" };
+X
+X/*
+X * Global variable: exceptionStack
+X * -------------------------------
+X * This variable is the head pointer to a linked list of
+X * context blocks that act as the exception stack.  The chain
+X * pointer is referenced by the macros in exception.h and must
+X * therefore be exported, but clients should not reference it
+X * directly.
+X */
+X
+Xcontext_block *exceptionStack = NULL;
+X
+X/* Private function prototypes */
+X
+Xstatic context_block *FindHandler(exception *e);
+X
+X/* Public entries */
+X
+X/*
+X * Function: RaiseException
+X * ------------------------
+X * This function operates by finding an appropriate handler
+X * and then using longjmp to return to the context stored
+X * there after resetting the exception stack.  If no handler
+X * exists, the function notes an unhandled exception.  Much
+X * of the complexity comes from the fact that allocation
+X * within the exception handler may fail.
+X */
+X
+Xvoid RaiseException(exception *e, string name, void *value)
+X{
+X    context_block *cb;
+X    char errbuf[MaxUnhandledMessage + 1];
+X    string errmsg;
+X    int errlen;
+X
+X    cb = FindHandler(e);
+X    if (cb == NULL) {
+X        sprintf(errbuf, "Unhandled exception (%.30s)", name);
+X        errlen = strlen(errbuf);
+X        if (_acb == NULL) {
+X            errmsg = malloc(errlen + 1);
+X        } else {
+X            errmsg = _acb->allocMethod(errlen + 1);
+X        }
+X        if (errmsg == NULL) {
+X            errmsg = "Unhandled exception: unknown";
+X        } else {
+X            strcpy(errmsg, errbuf);
+X        }
+X        Error(errmsg);
+X    }
+X    exceptionStack = cb;
+X    cb->id = e;
+X    cb->value = value;
+X    cb->name = name;
+X    longjmp(cb->jmp, ES_Exception);
+X}
+X
+X/*
+X * Function: HandlerExists
+X * -----------------------
+X * This public entry is used primarily by the Error function
+X * to determine if ErrorException has been trapped, although
+X * it is available to other clients as well.
+X */
+X
+Xbool HandlerExists(exception *e)
+X{
+X    return (FindHandler(e) != NULL);
+X}
+X
+X/* Private functions */
+X
+X/*
+X * Function: FindHandler
+X * ---------------------
+X * This function searches the exception stack to find the
+X * first active handler for the indicated exception.  If a
+X * match is found, the context block pointer is returned.
+X * If not, FindHandler returns NULL.
+X */
+X
+Xstatic context_block *FindHandler(exception *e)
+X{
+X    context_block *cb;
+X    exception *t;
+X    int i;
+X
+X    for (cb = exceptionStack; cb != NULL; cb = cb->link) {
+X        for (i = 0; i < cb->nx; i++) {
+X            t = cb->array[i];
+X            if (t == e || t == &ANY) return (cb);
+X        }
+X    }
+X    return (NULL);
+X}
+END_OF_FILE
+if test 3276 -ne `wc -c <'cslib/exception.c'`; then
+    echo shar: \"'cslib/exception.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/exception.c'
+fi
+if test -f 'cslib/exception.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/exception.h'\"
+else
+echo shar: Extracting \"'cslib/exception.h'\" \(7974 characters\)
+sed "s/^X//" >'cslib/exception.h' <<'END_OF_FILE'
+X/*
+X * File: exception.h
+X * Version: 1.0
+X * Last modified on Sat Nov 19 16:36:26 1994 by eroberts
+X * -----------------------------------------------------
+X * The exception package provides a general exception
+X * handling mechanism for use with C that is portable
+X * across a variety of compilers and operating systems.
+X */
+X
+X#ifndef _exception_h
+X#define _exception_h
+X
+X/*
+X * Overview:
+X * --------
+X * The exception package makes it possible for clients to
+X * specify a handler for an exceptional conditions in a
+X * syntactically readable way.  As a client, your first step
+X * is to declare an exception condition name by declaring
+X * a variable of type exception, as in
+X *
+X *       exception MyException;
+X *
+X * Normal visibility rules apply, so that you should declare
+X * the exception variable at the appropriate level.  For
+X * example, if an exception is local to an implementation,
+X * it should be declared statically within that module.  If
+X * an exception condition is shared by many modules, the
+X * exception variable should be declared in an interface
+X * and exported to all clients that need it.  This package
+X * defines and exports the exception ErrorException, which
+X * is likely to be sufficient for many clients.
+X *
+X * The basic functionality of exceptions is that one piece
+X * of code can "raise" an exception so that it can then be
+X * "handled" by special code in a dynamically enclosing
+X * section of the program.  Exceptions are raised by calling
+X * the pseudo-function raise with the exception name, as in
+X *
+X *     raise(MyException);
+X *
+X * Exceptions are handled using the "try" statement
+X * (actually implemented using macros), which has the form:
+X *
+X *     try {
+X *        . . . statements in the body of the block . . .
+X *     except(exception1)
+X *        . . . statements to handle exception 1 . . .
+X *     except(exception2)
+X *        . . . statements to handle exception 2 . . .
+X *     except(ANY)
+X *        . . . statements to handle any exception . . .
+X *     } endtry
+X *
+X * Any number of except clauses may appear (up to a
+X * maximum defined by the constant MaxExceptionsPerScope),
+X * and the ANY clause is optional.
+X *
+X * When the program encounters the "try" statement, the
+X * statements in the body are executed.  If no exception
+X * conditions are raised during that execution, either
+X * in this block or by a function call nested inside
+X * this block, control passes to the end of the "try"
+X * statement when the last statement in the block is
+X * executed.  If an exception is raised during the
+X * dynamic execution of the block, control immediately
+X * passes to the statements in the appropriate except
+X * clause.  Only the statements in that clause are
+X * executed; no break statement is required to exit
+X * the block.  If no handler for the raised exception
+X * appears anywhere in the control history, the program
+X * exits with an error.
+X *
+X * Examples of use:
+X *
+X * 1.  Catching errors.
+X *
+X * The following code fragment traps calls to Error, so
+X * that the program does not quit but instead returns
+X * to the top-level read-and-execute loop.
+X *
+X *     while (TRUE) {
+X *         try {
+X *             printf("> ");
+X *             cmd = ReadCommand();
+X *             ExecuteCommand(cmd);
+X *         except(ErrorException)
+X *             printf("Error: %s\n", (string) GetExceptionValue());
+X *             -- additional handling code, if any --
+X *         } endtry
+X *     }
+X *
+X * If either ReadCommand or ExecuteCommand calls Error,
+X * control will be passed back to the main loop, after
+X * executing any additional handler code.  The error
+X * message is passed as the exception value and can be
+X * printed as shown in the example.
+X *
+X * 2.  Handling control-C
+X *
+X * The following code extends the example above so that
+X * typing ^C also returns to top-level.
+X *
+X *     #include <signal.h>
+X *
+X *     static exception ControlCException;
+X *     static int errorCount = 0;
+X *     static int ControlCHandler();
+X *
+X *     main()
+X *     {
+X *         string cmd;
+X *
+X *         signal(SIGINT, ControlCHandler);
+X *         while (TRUE) {
+X *             try {
+X *                 printf("> ");
+X *                 cmd = ReadCommand();
+X *                 ExecuteCommand(cmd);
+X *             except(ControlCException);
+X *                 printf("^C\n");
+X *                 signal(SIGINT, ControlCHandler);
+X *             except(ErrorException)
+X *                 errorCount++;
+X *             } endtry
+X *         }
+X *     }
+X *
+X *     static int ControlCHandler()
+X *     {
+X *         raise(ControlCException);
+X *     }
+X */
+X
+X/*
+X * Actual interface specification
+X * ------------------------------
+X * Most of the implementation of the exception mechanism is
+X * actually done in the macros defined by this file.
+X * Clients should ordinarily be able to read the description
+X * above and ignore the detailed code below.
+X */
+X
+X#include <setjmp.h>
+X#include <string.h>
+X#include "genlib.h"
+X
+X/* Define parameters and error status indicators */
+X
+X#define MaxExceptionsPerScope 10
+X#define ETooManyExceptClauses 101
+X#define EUnhandledException 102
+X
+X/* Codes to keep track of the state of the try handler */
+X
+X#define ES_Initialize 0
+X#define ES_EvalBody 1
+X#define ES_Exception 2
+X
+X/*
+X * Type: exception
+X * ---------------
+X * Exceptions are specified by their address, so that the
+X * actual structure does not matter.  Strings are used here
+X * so that exporters of exceptions can store the exception
+X * name for the use of debuggers and other tools.
+X */
+X
+Xtypedef struct { string name; } exception;
+X
+X/*
+X * Type: context_block
+X * -------------------
+X * This structure is used internally to maintain a chain of
+X * exception scopes on the control stack.
+X */
+X
+Xtypedef struct ctx_block {
+X    jmp_buf jmp;
+X    int nx;
+X    exception *array[MaxExceptionsPerScope];
+X    exception *id;
+X    void *value;
+X    string name;
+X    struct ctx_block *link;
+X} context_block;
+X
+X/* Declare the built-in exceptions */
+X
+Xextern exception ErrorException;
+Xextern exception ANY;
+X
+X/* Declare a global pointer to the context stack */
+X
+Xextern context_block *exceptionStack;
+X
+X/*
+X * Function: RaiseException
+X * Usage: RaiseException(&e, name, value);
+X * ---------------------------------------
+X * This function is called by the raise macro and does the
+X * work necessary to raise the exception.  See the exception.c file
+X * for details.  Clients do not ordinarily call this directly.
+X */
+X
+Xvoid RaiseException(exception *e, string name, void *value);
+X
+X/*
+X * Function: HandlerExists
+X * Usage: if (HandlerExists(&e)) ...
+X * ---------------------------------
+X * Determines whether a handler exists for an exception in
+X * the dynamically enclosing scope.  Intended only for use
+X * by special clients, such as the Error package.
+X */
+X
+Xbool HandlerExists(exception *e);
+X
+X/* Define the pseudo-functions for raise and try */
+X
+X#define raise(e) RaiseException(&e, #e, NULL)
+X
+X#define try \
+X      { \
+X          jmp_buf _tmpbuf; \
+X          context_block _ctx; \
+X          volatile int _es; \
+X          _es = ES_Initialize; \
+X          _ctx.nx = 0; \
+X          _ctx.link = exceptionStack; \
+X          exceptionStack = (context_block *) &_ctx; \
+X          if (setjmp(_tmpbuf) != 0) _es = ES_Exception; \
+X          memcpy((void *) _ctx.jmp, (void *) _tmpbuf, sizeof(jmp_buf)); \
+X          while (1) { \
+X              if (_es == ES_EvalBody)
+X
+X#define except(e) \
+X                  if (_es == ES_EvalBody) exceptionStack = _ctx.link; \
+X                  break; \
+X              } \
+X              if (_es == ES_Initialize) { \
+X                  if (_ctx.nx >= MaxExceptionsPerScope) \
+X                      exit(ETooManyExceptClauses); \
+X                  _ctx.array[_ctx.nx++] = &e; \
+X              } else if (_ctx.id == &e || &e == &ANY) { \
+X                  exceptionStack = _ctx.link;
+X
+X#define endtry \
+X              if (_es != ES_Initialize) break; \
+X              _es = ES_EvalBody; \
+X          } \
+X      }
+X
+X#define GetExceptionName() _ctx.name
+X#define GetExceptionValue() _ctx.value
+X#define GetCurrentException() _ctx.id
+X
+X#endif
+END_OF_FILE
+if test 7974 -ne `wc -c <'cslib/exception.h'`; then
+    echo shar: \"'cslib/exception.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/exception.h'
+fi
+if test -f 'cslib/gcalloc.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/gcalloc.h'\"
+else
+echo shar: Extracting \"'cslib/gcalloc.h'\" \(2269 characters\)
+sed "s/^X//" >'cslib/gcalloc.h' <<'END_OF_FILE'
+X/*
+X * File: gcalloc.h
+X * Version: 1.0
+X * Last modified on Wed Sep 21 16:21:37 1994 by eroberts
+X * -----------------------------------------------------
+X * This file is a stub version of the interface for a
+X * garbage-collecting allocator that will be part of
+X * a future library release.  When the garbage-collecting
+X * allocator is in use, the memory returned by the GetBlock
+X * and FreeBlock functions in genlib.h can be traced and
+X * collected automatically when it is no longer accessible.
+X *
+X * The garbage-collecting allocator is not part of the
+X * current cslib distribution.  Even so, functions in the
+X * other libraries call the ProtectVariable and ProtectBlock
+X * functions, so that they will continue to work when the
+X * full library is released.  Those functions are implemented
+X * in genlib.c.
+X */
+X
+X#ifndef _gcalloc_h
+X#define _gcalloc_h
+X
+X/*
+X * Macro: ProtectVariable
+X * Usage: ProtectVariable(v);
+X * --------------------------
+X * This macro registers a global variable with the allocation
+X * system, so that the variable is traced when the garbage
+X * collector is used.  This operation needs is implemented
+X * in genlib.c so that code can be written to function correctly
+X * whether or not the garbage-collecting allocator is loaded.
+X */
+X
+X#define ProtectVariable(v) ProtectBlock(&v, sizeof v)
+X
+X/*
+X * Function: ProtectBlock
+X * Usage: ProtectBlock(ptr, nbytes);
+X * ---------------------------------
+X * This function is not usually called by clients (who will
+X * ordinarily use ProtectVariable instead), but has the
+X * effect of protecting the block of memory beginning at
+X * ptr and extending for nbytes from the garbage collector.
+X */
+X
+Xvoid ProtectBlock(void *ptr, size_t nbytes);
+X
+X/*
+X * Global linkage variable: _acb
+X * -----------------------------
+X * This variable is used to hold the allocation control block
+X * that provides the linkage between this package and the
+X * dynamic allocator.  The reason for using the structure
+X * as a linkage is so that the garbage-collecting allocator
+X * need not even be loaded if it is not explicitly called.
+X */
+X
+Xtypedef struct {
+X    void *(*allocMethod)(size_t nbytes);
+X    void (*freeMethod)(void *ptr);
+X    void (*protectMethod)(void *ptr, size_t nbytes);
+X} *_GCControlBlock;
+X
+Xextern _GCControlBlock _acb;
+X
+X#endif
+END_OF_FILE
+if test 2269 -ne `wc -c <'cslib/gcalloc.h'`; then
+    echo shar: \"'cslib/gcalloc.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/gcalloc.h'
+fi
+if test -f 'cslib/genlib.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/genlib.c'\"
+else
+echo shar: Extracting \"'cslib/genlib.c'\" \(3748 characters\)
+sed "s/^X//" >'cslib/genlib.c' <<'END_OF_FILE'
+X/*
+X * File: genlib.c
+X * Version: 1.0
+X * Last modified on Sun Jul 24 10:29:46 1994 by eroberts
+X * -----------------------------------------------------
+X * This file implements the general C library package.  See the
+X * interface description in genlib.h for details.
+X */
+X
+X#include <stdio.h>
+X#include <stddef.h>
+X#include <string.h>
+X#include <stdarg.h>
+X
+X#include "genlib.h"
+X#include "gcalloc.h"
+X#include "exception.h"
+X
+X/*
+X * Constants:
+X * ----------
+X * ErrorExitStatus -- Status value used in exit call
+X * MaxErrorMessage -- Longest error message allowed
+X */
+X
+X#define ErrorExitStatus 1
+X#define MaxErrorMessage 500
+X
+X/* Section 1 -- Define new "primitive" types */
+X
+X/*
+X * Constant: UNDEFINED
+X * -------------------
+X * This entry defines the target of the UNDEFINED constant.
+X */
+X
+Xchar undefined_object[] = "UNDEFINED";
+X
+X/* Section 2 -- Memory allocation */
+X
+X/*
+X * Implementation notes:
+X * ---------------------
+X * The code for the memory allocator is divided between
+X * genlib.c and gcalloc.c, and the division strategy may at
+X * first seem unnatural, since the function ProtectBlock is
+X * declared in gcalloc.h but defined here in genlib.c.  The
+X * intention is to minimize the size of object files
+X * produced by linkers that search a library for modules
+X * that are actually referenced.  The libraries themselves
+X * need to call ProtectBlock (usually through the macro
+X * ProtectVariable), but will not require the actual code
+X * for the allocator unless InitGCAllocator is explicitly
+X * called.
+X */
+X
+X/*
+X * Global variable: _acb
+X * ---------------------
+X * This variable is used to hold a method suite that makes it
+X * easy to substitute a garbage-collecting allocator for the
+X * ANSI allocator.
+X */
+X
+X_GCControlBlock _acb = NULL;
+X
+X/* Memory allocation implementation */
+X
+Xvoid *GetBlock(size_t nbytes)
+X{
+X    void *result;
+X
+X    if (_acb == NULL) {
+X        result = malloc(nbytes);
+X    } else {
+X        result = _acb->allocMethod(nbytes);
+X    }
+X    if (result == NULL) Error("No memory available");
+X    return (result);
+X}
+X
+Xvoid FreeBlock(void *ptr)
+X{
+X    if (_acb == NULL) {
+X        free(ptr);
+X    } else {
+X        _acb->freeMethod(ptr);
+X    }
+X}
+X
+Xvoid ProtectBlock(void *ptr, size_t nbytes)
+X{
+X    if (_acb != NULL) _acb->protectMethod(ptr, nbytes);
+X}
+X
+X/* Section 3 -- Basic error handling */
+X
+X/*
+X * Implementation notes: Error
+X * ---------------------------
+X * Writing the Error function requires some care, since it is
+X * called in circumstances in which parts of the system may be
+X * broken.  In particular, it is not acceptable for Error to
+X * call GetBlock, since the error condition may be that the
+X * system is out of memory, in which case calling GetBlock would
+X * fail.  The error string should be allocated dynamically,
+X * so that this function can be used in reentrant code.
+X * Note that it is critical to exit if the length bound for
+X * an error message is exceeded, since this error almost
+X * certainly corrupts the stack.
+X */
+X
+Xvoid Error(string msg, ...)
+X{
+X    va_list args;
+X    char errbuf[MaxErrorMessage + 1];
+X    string errmsg;
+X    int errlen;
+X
+X    va_start(args, msg);
+X    vsprintf(errbuf, msg, args);
+X    va_end(args);
+X    errlen = strlen(errbuf);
+X    if (errlen > MaxErrorMessage) {
+X        fprintf(stderr, "Error: Error Message too long\n");
+X        exit(ErrorExitStatus);
+X    }
+X    if (_acb == NULL) {
+X        errmsg = malloc(errlen + 1);
+X    } else {
+X        errmsg = _acb->allocMethod(errlen + 1);
+X    }
+X    if (errmsg == NULL) {
+X        errmsg = "No memory available";
+X    } else {
+X        strcpy(errmsg, errbuf);
+X    }
+X    if (HandlerExists(&ErrorException)) {
+X        RaiseException(&ErrorException, "ErrorException", errmsg);
+X    } else {
+X        fprintf(stderr, "Error: %s\n", errmsg);
+X        exit(ErrorExitStatus);
+X    }
+X}
+END_OF_FILE
+if test 3748 -ne `wc -c <'cslib/genlib.c'`; then
+    echo shar: \"'cslib/genlib.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/genlib.c'
+fi
+if test -f 'cslib/genlib.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/genlib.h'\"
+else
+echo shar: Extracting \"'cslib/genlib.h'\" \(6232 characters\)
+sed "s/^X//" >'cslib/genlib.h' <<'END_OF_FILE'
+X/*
+X * File: genlib.h
+X * Version: 1.0
+X * Last modified on Sun Jul 24 10:32:49 1994 by eroberts
+X * -----------------------------------------------------
+X * This file contains several definitions that form the
+X * core of a general-purpose ANSI C library developed by Eric
+X * Roberts.  The goal of this library is to provide a basic
+X * set of tools and conventions that increase the readability
+X * of C programs, particularly as they are used in a teaching
+X * environment.
+X *
+X * The basic definitions provided by genlib.h are:
+X *
+X *    1.  Declarations for several new "primitive" types
+X *        (most importantly bool and string) that are
+X *        used throughout the other libraries and
+X *        applications as fundamental types.
+X *
+X *    2.  A new set of functions for memory allocation.
+X *
+X *    3.  A function for error handling.
+X *
+X *    4.  A repeat statement for loops with interior exits.
+X */
+X
+X#ifndef _genlib_h
+X#define _genlib_h
+X
+X#include <stdio.h>
+X#include <stdlib.h>
+X#include <stddef.h>
+X
+X/* Section 1 -- Define new "primitive" types */
+X
+X/*
+X * Type: bool
+X * ----------
+X * This type has two values, FALSE and TRUE, which are equal to 0
+X * and 1, respectively.  Most of the advantage of defining this type
+X * comes from readability because it allows the programmer to
+X * provide documentation that a variable will take on only one of
+X * these two values.  Designing a portable representation, however,
+X * is surprisingly hard, because many libraries and some compilers
+X * define these names.  The definitions are usually compatible but
+X * may still be flagged as errors.
+X */
+X
+X#ifdef THINK_C
+X   typedef int bool;
+X#else
+X#  ifdef TRUE
+X#    ifndef bool
+X#      define bool int
+X#    endif
+X#  else
+X#    ifdef bool
+X#      define FALSE 0
+X#      define TRUE 1
+X#    else
+X       typedef enum {FALSE, TRUE} bool;
+X#    endif
+X#  endif
+X#endif
+X
+X/*
+X * Type: string
+X * ------------
+X * The type string is identical to the type char *, which is
+X * traditionally used in C programs.  The main point of defining a
+X * new type is to improve program readability.   At the abstraction
+X * levels at which the type string is used, it is usually not
+X * important to take the string apart into its component characters.
+X * Declaring it as a string emphasizes this atomicity.
+X */
+X
+Xtypedef char *string;
+X
+X/*
+X * Type: stream
+X * ------------
+X * Like string, the stream type is used to provide additional
+X * readability and is defined to be equivalent to FILE *
+X * (which is particularly confusing because it violates
+X * standard case conventions).  This type is not used in
+X * the text but is preserved in genlib.h, so it is possible
+X * to teach all of CS1 without exposing any pointers.
+X */
+X
+Xtypedef FILE *stream;
+X
+X/*
+X * Constant: UNDEFINED
+X * -------------------
+X * Besides NULL, the only other constant of pointer type is
+X * UNDEFINED, which is used in certain packages as a special
+X * sentinel to indicate an undefined pointer value.  In many
+X * such contexts, NULL is a legitimate data value and is
+X * therefore inappropriate as a sentinel.
+X */
+X
+X#define UNDEFINED ((void *) undefined_object)
+X
+Xextern char undefined_object[];
+X
+X/* Section 2 -- Memory allocation */
+X
+X/*
+X * General notes:
+X * --------------
+X * These functions provide a common interface for memory
+X * allocation.  All functions in the library that allocate
+X * memory do so using GetBlock and FreeBlock.  Even though
+X * the ANSI standard defines malloc and free for the same
+X * purpose, using GetBlock and FreeBlock provides greater
+X * compatibility with non-ANSI implementations, automatic
+X * out-of-memory error detection, and the possibility of
+X * substituting a garbage-collecting allocator.
+X */
+X
+X/*
+X * Function: GetBlock
+X * Usage: ptr = (type) GetBlock(nbytes);
+X * -------------------------------------
+X * GetBlock allocates a block of memory of the given size.  If
+X * no memory is available, GetBlock generates an error.
+X */
+X
+Xvoid *GetBlock(size_t nbytes);
+X
+X/*
+X * Function: FreeBlock
+X * Usage: FreeBlock(ptr);
+X * ----------------------
+X * FreeBlock frees the memory associated with ptr, which must
+X * have been allocated using GetBlock, New, or NewArray.
+X */
+X
+Xvoid FreeBlock(void *ptr);
+X
+X/*
+X * Macro: New
+X * Usage: p = New(pointer-type);
+X * -----------------------------
+X * The New pseudofunction allocates enough space to hold an
+X * object of the type to which pointer-type points and returns
+X * a pointer to the newly allocated pointer.  Note that
+X * "New" is different from the "new" operator used in C++;
+X * the former takes a pointer type and the latter takes the
+X * target type.
+X */
+X
+X#define New(type) ((type) GetBlock(sizeof *((type) NULL)))
+X
+X/*
+X * Macro: NewArray
+X * Usage: p = NewArray(n, element-type);
+X * -------------------------------------
+X * NewArray allocates enough space to hold an array of n
+X * values of the specified element type.
+X */
+X
+X#define NewArray(n, type) ((type *) GetBlock((n) * sizeof (type)))
+X
+X/* Section 3 -- Basic error handling */
+X
+X/*
+X * Function: Error
+X * Usage: Error(msg, ...)
+X * ----------------------
+X * Error generates an error string, expanding % constructions
+X * appearing in the error message string just as printf does.
+X * If an error handler exception has been introduced (see the
+X * "exception.h" facility), the ErrorException exception is
+X * raised with the expanded error string as argument.  If
+X * there is no ErrorException defined, the program exits
+X * with a status code indicating failure (as given by the
+X * constant ErrorExitStatus).  The length of the error
+X * message string following expansion must not exceed
+X * MaxErrorMessage, and it is the client's responsibility
+X * to ensure this.
+X */
+X
+Xvoid Error(string msg, ...);
+X
+X/* Section 4 -- The repeat pseudo-statement */
+X
+X/*
+X * Statement form: repeat { ... }
+X * ------------------------------
+X * Some instructors who have taught CS1 using this library
+X * have found that using
+X *
+X *     while (TRUE)
+X *
+X * to initiate a loop with an interior exit is confusing to
+X * students, particularly when it comes at the beginning of
+X * the course.  This macro defines "repeat" as an infinite
+X * loop construct for instructors who find it easier to
+X * explain, although it is not used in the text.   Similar
+X * macro definitions are common in industry.
+X */
+X
+X#define repeat for (;;)
+X
+X#endif
+END_OF_FILE
+if test 6232 -ne `wc -c <'cslib/genlib.h'`; then
+    echo shar: \"'cslib/genlib.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/genlib.h'
+fi
+if test -f 'cslib/graphics.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/graphics.c'\"
+else
+echo shar: Extracting \"'cslib/graphics.c'\" \(4864 characters\)
+sed "s/^X//" >'cslib/graphics.c' <<'END_OF_FILE'
+X/*
+X * File: graphics.c
+X * Version: 1.0
+X * Last modified on Thu Sep 16 09:34:19 1993 by eroberts
+X * -----------------------------------------------------
+X * This file provides a fully standard implementation of the
+X * graphics.h interface that generates a PostScript file,
+X * suitable for printing.  None of the operations in the
+X * extended graphics interface are supported.  PostScript is
+X * a registered trademark of Adobe Systems Incorporated.
+X */
+X
+X/*
+X * General implementation notes
+X * ----------------------------
+X * This implementation of the graphics.h interface does not
+X * actually do any display but instead writes a PostScript
+X * file containing commands that would generate the picture.
+X * The advantage of this implementation is portability, since
+X * it contains no code that depends on graphics primitives
+X * for a particular platform.
+X *
+X * The code for this implementation is for the most part
+X * straightforward, because all of the graphics primitives
+X * have simple PostScript equivalents.  The only hard part
+X * is making sure that the end of the file is correct when
+X * the file is closed, usually via the exit call.  To print
+X * the page, the showpage command must occur at the end of
+X * the file, but the graphics package does not get control
+X * at that point.  To avoid the problem, each call to this
+X * package writes a legal trailer to the file.  Thus, the
+X * invariant after each call to any of these functions is
+X * that the PostScript file is complete.  Before writing
+X * new data, these functions back up the file pointer over
+X * the old trailer and begin rewriting from that point.
+X */
+X
+X#include <stdio.h>
+X#include <math.h>
+X
+X#include "genlib.h"
+X#include "graphics.h"
+X
+X/*
+X * Constants: WindowHeight, WindowWidth
+X * ------------------------------------
+X * These constants are the values returned by GetWindowHeight
+X * and GetWindowWidth.  The assumption here is that output is
+X * being directed to an 8.5 x 11 page.
+X */
+X
+X#define WindowHeight 11.0
+X#define WindowWidth   8.5
+X
+X/*
+X * Constant: PSFileName
+X * --------------------
+X * The name of the PostScript output file.
+X */
+X
+X#define PSFileName "graphics.ps"
+X
+X/*
+X * Private variables
+X * -----------------
+X * initialized    Set to TRUE when InitGraphics is called.
+X * psfile         The file stream used for PostScript.
+X * cx, cy         The current x, y positions.
+X * nextWrite      The file index for the next PostScript
+X *                command (see the general notes above).
+X */
+X
+Xstatic bool initialized = FALSE;
+X
+Xstatic FILE *psfile;
+X
+Xstatic double cx, cy;
+X
+Xstatic long nextWrite;
+X
+X/* Private function prototypes */
+X
+Xstatic void InitCheck(void);
+Xstatic void WritePostScriptHeader(void);
+Xstatic void WritePostScriptTrailer(void);
+Xstatic void ResetFilePointer(void);
+Xstatic double Pts(double inches);
+Xstatic double Radians(double degrees);
+X
+X/* Public functions */
+X
+Xvoid InitGraphics(void)
+X{
+X    if (initialized) fclose(psfile);
+X    psfile = fopen(PSFileName, "w");
+X    WritePostScriptHeader();
+X    WritePostScriptTrailer();
+X    cx = cy = 0;
+X    initialized = TRUE;
+X}
+X
+Xvoid MovePen(double x, double y)
+X{
+X    InitCheck();
+X    cx = x;
+X    cy = y;
+X}
+X
+Xvoid DrawLine(double dx, double dy)
+X{
+X    InitCheck();
+X    ResetFilePointer();
+X    fprintf(psfile, "newpath %g %g moveto", Pts(cx), Pts(cy));
+X    fprintf(psfile, " %g %g rlineto stroke\n", Pts(dx), Pts(dy));
+X    cx += dx;
+X    cy += dy;
+X    WritePostScriptTrailer();
+X}
+X
+Xvoid DrawArc(double r, double start, double sweep)
+X{
+X    double x, y;
+X
+X    InitCheck();
+X    x = cx + r * cos(Radians(start + 180));
+X    y = cy + r * sin(Radians(start + 180));
+X    ResetFilePointer();
+X    fprintf(psfile, "newpath %g %g %g", Pts(x), Pts(y), Pts(r));
+X    fprintf(psfile, " %g %g", start, start + sweep);
+X    fprintf(psfile, " %s stroke\n", (sweep < 0) ? "arcn" : "arc");
+X    WritePostScriptTrailer();
+X    cx = x + r * cos(Radians(start + sweep));
+X    cy = y + r * sin(Radians(start + sweep));
+X}
+X
+Xdouble GetWindowWidth(void)
+X{
+X    InitCheck();
+X    return (WindowWidth);
+X}
+X
+Xdouble GetWindowHeight(void)
+X{
+X    InitCheck();
+X    return (WindowHeight);
+X}
+X
+Xdouble GetCurrentX(void)
+X{
+X    InitCheck();
+X    return (cx);
+X}
+X
+Xdouble GetCurrentY(void)
+X{
+X    InitCheck();
+X    return (cy);
+X}
+X
+X/* Private functions */
+X
+Xstatic void InitCheck(void)
+X{
+X    if (!initialized) Error("InitGraphics has not been called");
+X}
+X
+Xstatic void WritePostScriptHeader(void)
+X{
+X    fprintf(psfile, "%%!PS-Adobe-1.0\n");
+X    fprintf(psfile, "%%%%Title: graphics window\n");
+X    fprintf(psfile, "%%%%Pages: 1\n");
+X    fprintf(psfile, "%%%%EndComments\n");
+X}
+X
+Xstatic void WritePostScriptTrailer(void)
+X{
+X    nextWrite = ftell(psfile);
+X    fprintf(psfile, "showpage\n");
+X}
+X
+Xstatic void ResetFilePointer(void)
+X{
+X    fseek(psfile, nextWrite, 0);
+X}
+X
+Xstatic double Pts(double inches)
+X{
+X    return (72 * inches);
+X}
+X
+Xstatic double Radians(double degrees)
+X{
+X    return (degrees / 180 * 3.1415926535);
+X}
+END_OF_FILE
+if test 4864 -ne `wc -c <'cslib/graphics.c'`; then
+    echo shar: \"'cslib/graphics.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/graphics.c'
+fi
+if test -f 'cslib/graphics.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/graphics.h'\"
+else
+echo shar: Extracting \"'cslib/graphics.h'\" \(4805 characters\)
+sed "s/^X//" >'cslib/graphics.h' <<'END_OF_FILE'
+X/*
+X * File: graphics.h
+X * Version: 1.0
+X * Last modified on Mon Jun  6 11:03:27 1994 by eroberts
+X * -----------------------------------------------------
+X * This interface provides access to a simple library of
+X * functions that make it possible to draw lines and arcs
+X * on the screen.  This interface presents a portable
+X * abstraction that can be used with a variety of window
+X * systems implemented on different hardware platforms.
+X */
+X
+X#ifndef _graphics_h
+X#define _graphics_h
+X
+X/*
+X * Overview
+X * --------
+X * This library provides several functions for drawing lines
+X * and circular arcs in a region of the screen that is
+X * defined as the "graphics window."  Once drawn, these
+X * lines and arcs stay in their position, which means that
+X * the package can only be used for static pictures and not
+X * for animation.
+X *
+X * Individual points within the window are specified by
+X * giving their x and y coordinates.  These coordinates are
+X * real numbers measured in inches, with the origin in the
+X * lower left corner, as it is in traditional mathematics.
+X *
+X * The calls available in the package are listed below.  More
+X * complete descriptions are included with each function
+X * description.
+X *
+X *   InitGraphics();
+X *   MovePen(x, y);
+X *   DrawLine(dx, dy);
+X *   DrawArc(r, start, sweep);
+X *   width = GetWindowWidth();
+X *   height = GetWindowHeight();
+X *   x = GetCurrentX();
+X *   y = GetCurrentY();
+X */
+X
+X/*
+X * Function: InitGraphics
+X * Usage: InitGraphics();
+X * ----------------------
+X * This procedure creates the graphics window on the screen.
+X * The call to InitGraphics must precede any calls to other
+X * functions in this package and must also precede any printf
+X * output.  In most cases, the InitGraphics call is the first
+X * statement in the function main.
+X */
+X
+Xvoid InitGraphics(void);
+X
+X/*
+X * Function: MovePen
+X * Usage: MovePen(x, y);
+X * ---------------------
+X * This procedure moves the current point to the position
+X * (x, y), without drawing a line.  The model is that of
+X * the pen being lifted off the graphics window surface and
+X * then moved to its new position.
+X */
+X
+Xvoid MovePen(double x, double y);
+X
+X/*
+X * Function: DrawLine
+X * Usage: DrawLine(dx, dy);
+X * ------------------------
+X * This procedure draws a line extending from the current
+X * point by moving the pen dx inches in the x direction
+X * and dy inches in the y direction.  The final position
+X * becomes the new current point.
+X */
+X
+Xvoid DrawLine(double dx, double dy);
+X
+X/*
+X * Function: DrawArc
+X * Usage: DrawArc(r, start, sweep);
+X * --------------------------------
+X * This procedure draws a circular arc, which always begins
+X * at the current point.  The arc itself has radius r, and
+X * starts at the angle specified by the parameter start,
+X * relative to the center of the circle.  This angle is
+X * measured in degrees counterclockwise from the 3 o'clock
+X * position along the x-axis, as in traditional mathematics.
+X * For example, if start is 0, the arc begins at the 3 o'clock
+X * position; if start is 90, the arc begins at the 12 o'clock
+X * position; and so on.  The fraction of the circle drawn is
+X * specified by the parameter sweep, which is also measured in
+X * degrees.  If sweep is 360, DrawArc draws a complete circle;
+X * if sweep is 90, it draws a quarter of a circle.  If the value
+X * of sweep is positive, the arc is drawn counterclockwise from
+X * the current point.  If sweep is negative, the arc is drawn
+X * clockwise from the current point.  The current point at the
+X * end of the DrawArc operation is the final position of the pen
+X * along the arc.
+X *
+X * Examples:
+X *   DrawArc(r, 0, 360)    Draws a circle to the left of the
+X *                         current point.
+X *   DrawArc(r, 90, 180)   Draws the left half of a semicircle
+X *                         starting from the 12 o'clock position.
+X *   DrawArc(r, 0, 90)     Draws a quarter circle from the 3
+X *                         o'clock to the 12 o'clock position.
+X *   DrawArc(r, 0, -90)    Draws a quarter circle from the 3
+X *                         o'clock to the 6 o'clock position.
+X *   DrawArc(r, -90, -90)  Draws a quarter circle from the 6
+X *                         o'clock to the 9 o'clock position.
+X */
+X
+Xvoid DrawArc(double r, double start, double sweep);
+X
+X/*
+X * Functions: GetWindowWidth, GetWindowHeight
+X * Usage: width = GetWindowWidth();
+X *        height = GetWindowHeight();
+X * ------------------------------------------
+X * These functions return the width and height of the graphics
+X * window, in inches.
+X */
+X
+Xdouble GetWindowWidth(void);
+Xdouble GetWindowHeight(void);
+X
+X/*
+X * Functions: GetCurrentX, GetCurrentY
+X * Usage: x = GetCurrentX();
+X *        y = GetCurrentY();
+X * -----------------------------------
+X * These functions return the current x and y positions.
+X */
+X
+Xdouble GetCurrentX(void);
+Xdouble GetCurrentY(void);
+X
+X#endif
+END_OF_FILE
+if test 4805 -ne `wc -c <'cslib/graphics.h'`; then
+    echo shar: \"'cslib/graphics.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/graphics.h'
+fi
+if test -f 'cslib/random.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/random.c'\"
+else
+echo shar: Extracting \"'cslib/random.c'\" \(1718 characters\)
+sed "s/^X//" >'cslib/random.c' <<'END_OF_FILE'
+X/*
+X * File: random.c
+X * Version: 1.0
+X * Last modified on Mon Sep 13 10:42:45 1993 by eroberts
+X * -----------------------------------------------------
+X * This file implements the random.h interface.
+X */
+X
+X#include <stdio.h>
+X#include <stdlib.h>
+X#include <time.h>
+X
+X#include "genlib.h"
+X#include "random.h"
+X
+X/*
+X * Function: Randomize
+X * -------------------
+X * This function operates by setting the random number
+X * seed to the current time.  The srand function is
+X * provided by the <stdlib.h> library and requires an
+X * integer argument.  The time function is provided
+X * by <time.h>.
+X */
+X
+Xvoid Randomize(void)
+X{
+X    srand((int) time(NULL));
+X}
+X
+X/*
+X * Function: RandomInteger
+X * -----------------------
+X * This function first obtains a random integer in
+X * the range [0..RAND_MAX] by applying four steps:
+X * (1) Generate a real number between 0 and 1.
+X * (2) Scale it to the appropriate range size.
+X * (3) Truncate the value to an integer.
+X * (4) Translate it to the appropriate starting point.
+X */
+X
+Xint RandomInteger(int low, int high)
+X{
+X    int k;
+X    double d;
+X
+X    d = (double) rand() / ((double) RAND_MAX + 1);
+X    k = (int) (d * (high - low + 1));
+X    return (low + k);
+X}
+X
+X/*
+X * Function: RandomReal
+X * --------------------
+X * The implementation of RandomReal is similar to that
+X * of RandomInteger, without the truncation step.
+X */
+X
+Xdouble RandomReal(double low, double high)
+X{
+X    double d;
+X
+X    d = (double) rand() / ((double) RAND_MAX + 1);
+X    return (low + d * (high - low));
+X}
+X
+X/*
+X * Function: RandomChance
+X * ----------------------
+X * This function uses RandomReal to generate a number
+X * between 0 and 100, which it then compares to p.
+X */
+X
+Xbool RandomChance(double p)
+X{
+X    return (RandomReal(0, 1) < p);
+X}
+END_OF_FILE
+if test 1718 -ne `wc -c <'cslib/random.c'`; then
+    echo shar: \"'cslib/random.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/random.c'
+fi
+if test -f 'cslib/random.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/random.h'\"
+else
+echo shar: Extracting \"'cslib/random.h'\" \(1962 characters\)
+sed "s/^X//" >'cslib/random.h' <<'END_OF_FILE'
+X/*
+X * File: random.h
+X * Version: 1.0
+X * Last modified on Fri Jul 22 16:44:36 1994 by eroberts
+X * -----------------------------------------------------
+X * This interface provides several functions for generating
+X * pseudo-random numbers.
+X */
+X
+X#ifndef _random_h
+X#define _random_h
+X
+X#include "genlib.h"
+X#include <stdlib.h>
+X
+X/*
+X * Constant: RAND_MAX
+X * ------------------
+X * Unfortunately, several libraries that supposedly conform to
+X * the ANSI standard do not define RAND_MAX in <stdlib.h>.  To
+X * reduce portability problems, this interface defines RAND_MAX
+X * to be the largest positive integer if it is undefined.
+X */
+X
+X#ifndef RAND_MAX
+X#  define RAND_MAX ((int) ((unsigned) ~0 >> 1))
+X#endif
+X
+X/*
+X * Function: Randomize
+X * Usage: Randomize();
+X * -------------------
+X * This function sets the random seed so that the random sequence
+X * is unpredictable.  During the debugging phase, it is best not
+X * to call this function, so that program behavior is repeatable.
+X */
+X
+Xvoid Randomize(void);
+X
+X/*
+X * Function: RandomInteger
+X * Usage: n = RandomInteger(low, high);
+X * ------------------------------------
+X * This function returns a random integer in the range low to high,
+X * inclusive.
+X */
+X
+Xint RandomInteger(int low, int high);
+X
+X/*
+X * Function: RandomReal
+X * Usage: d = RandomReal(low, high);
+X * ---------------------------------
+X * This function returns a random real number in the half-open
+X * interval [low .. high), meaning that the result is always
+X * greater than or equal to low but strictly less than high.
+X */
+X
+Xdouble RandomReal(double low, double high);
+X
+X/*
+X * Function: RandomChance
+X * Usage: if (RandomChance(p)) . . .
+X * ---------------------------------
+X * The RandomChance function returns TRUE with the probability
+X * indicated by p, which should be a floating-point number between
+X * 0 (meaning never) and 1 (meaning always).  For example, calling
+X * RandomChance(.30) returns TRUE 30 percent of the time.
+X */
+X
+Xbool RandomChance(double p);
+X
+X#endif
+END_OF_FILE
+if test 1962 -ne `wc -c <'cslib/random.h'`; then
+    echo shar: \"'cslib/random.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/random.h'
+fi
+if test -f 'cslib/simpio.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/simpio.c'\"
+else
+echo shar: Extracting \"'cslib/simpio.c'\" \(3581 characters\)
+sed "s/^X//" >'cslib/simpio.c' <<'END_OF_FILE'
+X/*
+X * File: simpio.c
+X * Version: 1.0
+X * Last modified on Fri Jul 15 14:10:41 1994 by eroberts
+X * -----------------------------------------------------
+X * This file implements the simpio.h interface.
+X */
+X
+X#include <stdio.h>
+X#include <string.h>
+X
+X#include "genlib.h"
+X#include "strlib.h"
+X#include "simpio.h"
+X
+X/*
+X * Constants:
+X * ----------
+X * InitialBufferSize -- Initial buffer size for ReadLine
+X */
+X
+X#define InitialBufferSize 120
+X
+X/* Exported entries */
+X
+X/*
+X * Functions: GetInteger, GetLong, GetReal
+X * ---------------------------------------
+X * These functions first read a line and then call sscanf to
+X * translate the number.  Reading an entire line is essential to
+X * good error recovery, because the characters after the point of
+X * error would otherwise remain in the input buffer and confuse
+X * subsequent input operations.  The sscanf line allows white space
+X * before and after the number but no other extraneous characters.
+X */
+X
+Xint GetInteger(void)
+X{
+X    string line;
+X    int value;
+X    char termch;
+X
+X    while (TRUE) {
+X        line = GetLine();
+X        switch (sscanf(line, " %d %c", &value, &termch)) {
+X          case 1:
+X            FreeBlock(line);
+X            return (value);
+X          case 2:
+X            printf("Unexpected character: '%c'\n", termch);
+X            break;
+X          default:
+X            printf("Please enter an integer\n");
+X            break;
+X        }
+X        FreeBlock(line);
+X        printf("Retry: ");
+X    }
+X}
+X
+Xlong GetLong(void)
+X{
+X    string line;
+X    long value;
+X    char termch;
+X
+X    while (TRUE) {
+X        line = GetLine();
+X        switch (sscanf(line, " %ld %c", &value, &termch)) {
+X          case 1:
+X            FreeBlock(line);
+X            return (value);
+X          case 2:
+X            printf("Unexpected character: '%c'\n", termch);
+X            break;
+X          default:
+X            printf("Please enter an integer\n");
+X            break;
+X        }
+X        FreeBlock(line);
+X        printf("Retry: ");
+X    }
+X}
+X
+Xdouble GetReal(void)
+X{
+X    string line;
+X    double value;
+X    char termch;
+X
+X    while (TRUE) {
+X        line = GetLine();
+X        switch (sscanf(line, " %lf %c", &value, &termch)) {
+X          case 1:
+X            FreeBlock(line);
+X            return (value);
+X          case 2:
+X            printf("Unexpected character: '%c'\n", termch);
+X            break;
+X          default:
+X            printf("Please enter a real number\n");
+X            break;
+X        }
+X        FreeBlock(line);
+X        printf("Retry: ");
+X    }
+X}
+X
+X/*
+X * Function: GetLine
+X * -----------------
+X * This function is a simple wrapper; all the work is done by
+X * ReadLine.
+X */
+X
+Xstring GetLine(void)
+X{
+X    return (ReadLine(stdin));
+X}
+X
+X/*
+X * Function: ReadLine
+X * ------------------
+X * This function operates by reading characters from the file
+X * into a dynamically allocated buffer.  If the buffer becomes
+X * full before the end of the line is reached, a new buffer
+X * twice the size of the previous one is allocated.
+X */
+X
+Xstring ReadLine(FILE *infile)
+X{
+X    string line, nline;
+X    int n, ch, size;
+X
+X    n = 0;
+X    size = InitialBufferSize;
+X    line = GetBlock(size + 1);
+X    while ((ch = getc(infile)) != '\n' && ch != EOF) {
+X        if (n == size) {
+X            size *= 2;
+X            nline = (string) GetBlock(size + 1);
+X            strncpy(nline, line, n);
+X            FreeBlock(line);
+X            line = nline;
+X        }
+X        line[n++] = ch;
+X    }
+X    if (n == 0 && ch == EOF) {
+X        FreeBlock(line);
+X        return (NULL);
+X    }
+X    line[n] = '\0';
+X    nline = (string) GetBlock(n + 1);
+X    strcpy(nline, line);
+X    FreeBlock(line);
+X    return (nline);
+X}
+END_OF_FILE
+if test 3581 -ne `wc -c <'cslib/simpio.c'`; then
+    echo shar: \"'cslib/simpio.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/simpio.c'
+fi
+if test -f 'cslib/simpio.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/simpio.h'\"
+else
+echo shar: Extracting \"'cslib/simpio.h'\" \(2008 characters\)
+sed "s/^X//" >'cslib/simpio.h' <<'END_OF_FILE'
+X/*
+X * File: simpio.h
+X * Version: 1.0
+X * Last modified on Wed Apr 27 07:29:13 1994 by eroberts
+X * -----------------------------------------------------
+X * This interface provides access to a simple package of
+X * functions that simplify the reading of input data.
+X */
+X
+X#ifndef _simpio_h
+X#define _simpio_h
+X
+X#include "genlib.h"
+X
+X/*
+X * Function: GetInteger
+X * Usage: i = GetInteger();
+X * ------------------------
+X * GetInteger reads a line of text from standard input and scans
+X * it as an integer.  The integer value is returned.  If an
+X * integer cannot be scanned or if more characters follow the
+X * number, the user is given a chance to retry.
+X */
+X
+Xint GetInteger(void);
+X
+X/*
+X * Function: GetLong
+X * Usage: l = GetLong();
+X * ---------------------
+X * GetLong reads a line of text from standard input and scans
+X * it as a long integer.  The value is returned as a long.
+X * If an integer cannot be scanned or if more characters follow
+X * the number, the user is given a chance to retry.
+X */
+X
+Xlong GetLong(void);
+X
+X/*
+X * Function: GetReal
+X * Usage: x = GetReal();
+X * ---------------------
+X * GetReal reads a line of text from standard input and scans
+X * it as a double.  If the number cannot be scanned or if extra
+X * characters follow after the number ends, the user is given
+X * a chance to reenter the value.
+X */
+X
+Xdouble GetReal(void);
+X
+X/*
+X * Function: GetLine
+X * Usage: s = GetLine();
+X * ---------------------
+X * GetLine reads a line of text from standard input and returns
+X * the line as a string.  The newline character that terminates
+X * the input is not stored as part of the string.
+X */
+X
+Xstring GetLine(void);
+X
+X/*
+X * Function: ReadLine
+X * Usage: s = ReadLine(infile);
+X * ----------------------------
+X * ReadLine reads a line of text from the input file and
+X * returns the line as a string.  The newline character
+X * that terminates the input is not stored as part of the
+X * string.  The ReadLine function returns NULL if infile
+X * is at the end-of-file position.
+X */
+X
+Xstring ReadLine(FILE *infile);
+X
+X#endif
+END_OF_FILE
+if test 2008 -ne `wc -c <'cslib/simpio.h'`; then
+    echo shar: \"'cslib/simpio.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/simpio.h'
+fi
+if test -f 'cslib/strlib.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/strlib.c'\"
+else
+echo shar: Extracting \"'cslib/strlib.c'\" \(5382 characters\)
+sed "s/^X//" >'cslib/strlib.c' <<'END_OF_FILE'
+X/*
+X * File: strlib.c
+X * Version: 1.0
+X * Last modified on Fri Jul 15 14:10:41 1994 by eroberts
+X * -----------------------------------------------------
+X * This file implements the strlib.h interface.
+X */
+X
+X/*
+X * General implementation notes:
+X * -----------------------------
+X * This module implements the strlib library by mapping all
+X * functions into the appropriate calls to the ANSI <string.h>
+X * interface.  The implementations of the individual functions
+X * are all quite simple and do not require individual comments.
+X * For descriptions of the behavior of each function, see the
+X * interface.
+X */
+X
+X#include <stdio.h>
+X#include <string.h>
+X#include <ctype.h>
+X
+X#include "genlib.h"
+X#include "strlib.h"
+X
+X/*
+X * Constant: MaxDigits
+X * -------------------
+X * This constant must be larger than the maximum
+X * number of digits that can appear in a number.
+X */
+X
+X#define MaxDigits 30
+X
+X/* Private function prototypes */
+X
+Xstatic string CreateString(int len);
+X
+X/* Section 1 -- Basic string operations */
+X
+Xstring Concat(string s1, string s2)
+X{
+X    string s;
+X    int len1, len2;
+X
+X    if (s1 == NULL || s2 == NULL) {
+X        Error("NULL string passed to Concat");
+X    }
+X    len1 = strlen(s1);
+X    len2 = strlen(s2);
+X    s = CreateString(len1 + len2);
+X    strcpy(s, s1);
+X    strcpy(s + len1, s2);
+X    return (s);
+X}
+X
+Xchar IthChar(string s, int i)
+X{
+X    int len;
+X
+X    if (s == NULL) Error("NULL string passed to IthChar");
+X    len = strlen(s);
+X    if (i < 0 || i > len) {
+X        Error("Index outside of string range in IthChar");
+X    }
+X    return (s[i]);
+X}
+X
+Xstring SubString(string s, int p1, int p2)
+X{
+X    int len;
+X    string result;
+X
+X    if (s == NULL) Error("NULL string passed to SubString");
+X    len = strlen(s);
+X    if (p1 < 0) p1 = 0;
+X    if (p2 >= len) p2 = len - 1;
+X    len = p2 - p1 + 1;
+X    if (len < 0) len = 0;
+X    result = CreateString(len);
+X    strncpy(result, s + p1, len);
+X    result[len] = '\0';
+X    return (result);
+X}
+X
+Xstring CharToString(char ch)
+X{
+X    string result;
+X
+X    result = CreateString(1);
+X    result[0] = ch;
+X    result[1] = '\0';
+X    return (result);
+X}
+X
+Xint StringLength(string s)
+X{
+X    if (s == NULL) Error("NULL string passed to StringLength");
+X    return (strlen(s));
+X}
+X
+Xstring CopyString(string s)
+X{
+X    string newstr;
+X
+X    if (s == NULL) Error("NULL string passed to CopyString");
+X    newstr = CreateString(strlen(s));
+X    strcpy(newstr, s);
+X    return (newstr);
+X}
+X
+X/* Section 2 -- String comparison functions */
+X
+Xbool StringEqual(string s1, string s2)
+X{
+X    if (s1 == NULL || s2 == NULL) {
+X        Error("NULL string passed to StringEqual");
+X    }
+X    return (strcmp(s1, s2) == 0);
+X}
+X
+Xint StringCompare(string s1, string s2)
+X{
+X    if (s1 == NULL || s2 == NULL) {
+X        Error("NULL string passed to StringCompare");
+X    }
+X    return (strcmp(s1, s2));
+X}
+X
+X/* Section 3 -- Search functions */
+X
+Xint FindChar(char ch, string text, int start)
+X{
+X    char *cptr;
+X
+X    if (text == NULL) Error("NULL string passed to FindChar");
+X    if (start < 0) start = 0;
+X    if (start > strlen(text)) return (-1);
+X    cptr = strchr(text + start, ch);
+X    if (cptr == NULL) return (-1);
+X    return ((int) (cptr - text));
+X}
+X
+Xint FindString(string str, string text, int start)
+X{
+X    char *cptr;
+X
+X    if (str == NULL) Error("NULL pattern string in FindString");
+X    if (text == NULL) Error("NULL text string in FindString");
+X    if (start < 0) start = 0;
+X    if (start > strlen(text)) return (-1);
+X    cptr = strstr(text + start, str);
+X    if (cptr == NULL) return (-1);
+X    return ((int) (cptr - text));
+X}
+X
+X/* Section 4 -- Case-conversion functions */
+X
+Xstring ConvertToLowerCase(string s)
+X{
+X    string result;
+X    int i;
+X
+X    if (s == NULL) {
+X        Error("NULL string passed to ConvertToLowerCase");
+X    }
+X    result = CreateString(strlen(s));
+X    for (i = 0; s[i] != '\0'; i++) result[i] = tolower(s[i]);
+X    result[i] = '\0';
+X    return (result);
+X}
+X
+Xstring ConvertToUpperCase(string s)
+X{
+X    string result;
+X    int i;
+X
+X    if (s == NULL) {
+X        Error("NULL string passed to ConvertToUpperCase");
+X    }
+X    result = CreateString(strlen(s));
+X    for (i = 0; s[i] != '\0'; i++) result[i] = toupper(s[i]);
+X    result[i] = '\0';
+X    return (result);
+X}
+X
+X/* Section 5 -- Functions for converting numbers to strings */
+X
+Xstring IntegerToString(int n)
+X{
+X    char buffer[MaxDigits];
+X
+X    sprintf(buffer, "%d", n);
+X    return (CopyString(buffer));
+X}
+X
+Xint StringToInteger(string s)
+X{
+X    int result;
+X    char dummy;
+X
+X    if (s == NULL) {
+X        Error("NULL string passed to StringToInteger");
+X    }
+X    if (sscanf(s, " %d %c", &result, &dummy) != 1) {
+X        Error("StringToInteger called on illegal number %s", s);
+X    }
+X    return (result);
+X}
+X
+Xstring RealToString(double d)
+X{
+X    char buffer[MaxDigits];
+X
+X    sprintf(buffer, "%G", d);
+X    return (CopyString(buffer));
+X}
+X
+Xdouble StringToReal(string s)
+X{
+X    double result;
+X    char dummy;
+X
+X    if (s == NULL) Error("NULL string passed to StringToReal");
+X    if (sscanf(s, " %lg %c", &result, &dummy) != 1) {
+X        Error("StringToReal called on illegal number %s", s);
+X    }
+X    return (result);
+X}
+X
+X/* Private functions */
+X
+X/*
+X * Function: CreateString
+X * Usage: s = CreateString(len);
+X * -----------------------------
+X * This function dynamically allocates space for a string of
+X * len characters, leaving room for the null character at the
+X * end.
+X */
+X
+Xstatic string CreateString(int len)
+X{
+X    return ((string) GetBlock(len + 1));
+X}
+END_OF_FILE
+if test 5382 -ne `wc -c <'cslib/strlib.c'`; then
+    echo shar: \"'cslib/strlib.c'\" unpacked with wrong size!
+fi
+# end of 'cslib/strlib.c'
+fi
+if test -f 'cslib/strlib.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'cslib/strlib.h'\"
+else
+echo shar: Extracting \"'cslib/strlib.h'\" \(7407 characters\)
+sed "s/^X//" >'cslib/strlib.h' <<'END_OF_FILE'
+X/*
+X * File: strlib.h
+X * Version: 1.0
+X * Last modified on Fri Jul 15 14:10:40 1994 by eroberts
+X * -----------------------------------------------------
+X * The strlib.h file defines the interface for a simple
+X * string library.  In the context of this package, strings
+X * are considered to be an abstract data type, which means
+X * that the client relies only on the operations defined for
+X * the type and not on the underlying representation.
+X */
+X
+X/*
+X * Cautionary note:
+X * ----------------
+X * Although this interface provides an extremely convenient
+X * abstraction for working with strings, it is not appropriate
+X * for all applications.  In this interface, the functions that
+X * return string values (such as Concat and SubString) do so
+X * by allocating new memory.  Over time, a program that uses
+X * this package will consume increasing amounts of memory
+X * and eventually exhaust the available supply.  If you are
+X * writing a program that runs for a short time and stops,
+X * the fact that the package consumes memory is not a problem.
+X * If, however, you are writing an application that must run
+X * for an extended period of time, using this package requires
+X * that you make some provision for freeing any allocated
+X * storage.
+X */
+X
+X#ifndef _strlib_h
+X#define _strlib_h
+X
+X#include "genlib.h"
+X
+X/* Section 1 -- Basic string operations */
+X
+X/*
+X * Function: Concat
+X * Usage: s = Concat(s1, s2);
+X * --------------------------
+X * This function concatenates two strings by joining them end
+X * to end.  For example, Concat("ABC", "DE") returns the string
+X * "ABCDE".
+X */
+X
+Xstring Concat(string s1, string s2);
+X
+X/*
+X * Function: IthChar
+X * Usage: ch = IthChar(s, i);
+X * --------------------------
+X * This function returns the character at position i in the
+X * string s.  It is included in the library to make the type
+X * string a true abstract type in the sense that all of the
+X * necessary operations can be invoked using functions. Calling
+X * IthChar(s, i) is like selecting s[i], except that IthChar
+X * checks to see if i is within the range of legal index
+X * positions, which extend from 0 to StringLength(s).
+X * IthChar(s, StringLength(s)) returns the null character
+X * at the end of the string.
+X */
+X
+Xchar IthChar(string s, int i);
+X
+X/*
+X * Function: SubString
+X * Usage: t = SubString(s, p1, p2);
+X * --------------------------------
+X * SubString returns a copy of the substring of s consisting
+X * of the characters between index positions p1 and p2,
+X * inclusive.  The following special cases apply:
+X *
+X * 1. If p1 is less than 0, it is assumed to be 0.
+X * 2. If p2 is greater than the index of the last string
+X *    position, which is StringLength(s) - 1, then p2 is
+X *    set equal to StringLength(s) - 1.
+X * 3. If p2 < p1, SubString returns the empty string.
+X */
+X
+Xstring SubString(string s, int p1, int p2);
+X
+X/*
+X * Function: CharToString
+X * Usage: s = CharToString(ch);
+X * ----------------------------
+X * This function takes a single character and returns a
+X * one-character string consisting of that character.  The
+X * CharToString function is useful, for example, if you
+X * need to concatenate a string and a character.  Since
+X * Concat requires two strings, you must first convert
+X * the character into a string.
+X */
+X
+Xstring CharToString(char ch);
+X
+X/*
+X * Function: StringLength
+X * Usage: len = StringLength(s);
+X * -----------------------------
+X * This function returns the length of s.
+X */
+X
+Xint StringLength(string s);
+X
+X/*
+X * Function: CopyString
+X * Usage: newstr = CopyString(s);
+X * ------------------------------
+X * CopyString copies the string s into dynamically allocated
+X * storage and returns the new string.  This function is not
+X * ordinarily required if this package is used on its own,
+X * but is often necessary when you are working with more than
+X * one string package.
+X */
+X
+Xstring CopyString(string s);
+X
+X/* Section 2 -- String comparison functions */
+X
+X/*
+X * Function: StringEqual
+X * Usage: if (StringEqual(s1, s2)) ...
+X * -----------------------------------
+X * This function returns TRUE if the strings s1 and s2 are
+X * equal.  For the strings to be considered equal, every
+X * character in one string must precisely match the
+X * corresponding character in the other.  Uppercase and
+X * lowercase characters are considered to be different.
+X */
+X
+Xbool StringEqual(string s1, string s2);
+X
+X/*
+X * Function: StringCompare
+X * Usage: if (StringCompare(s1, s2) < 0) ...
+X * -----------------------------------------
+X * This function returns a number less than 0 if string s1
+X * comes before s2 in alphabetical order, 0 if they are equal,
+X * and a number greater than 0 if s1 comes after s2.  The
+X * ordering is determined by the internal representation used
+X * for characters, which is usually ASCII.
+X */
+X
+Xint StringCompare(string s1, string s2);
+X
+X/* Section 3 -- Search functions */
+X
+X/*
+X * Function: FindChar
+X * Usage: p = FindChar(ch, text, start);
+X * -------------------------------------
+X * Beginning at position start in the string text, this
+X * function searches for the character ch and returns the
+X * first index at which it appears or -1 if no match is
+X * found.
+X */
+X
+Xint FindChar(char ch, string text, int start);
+X
+X/*
+X * Function: FindString
+X * Usage: p = FindString(str, text, start);
+X * ----------------------------------------
+X * Beginning at position start in the string text, this
+X * function searches for the string str and returns the
+X * first index at which it appears or -1 if no match is
+X * found.
+X */
+X
+Xint FindString(string str, string text, int start);
+X
+X/* Section 4 -- Case-conversion functions */
+X
+X/*
+X * Function: ConvertToLowerCase
+X * Usage: s = ConvertToLowerCase(s);
+X * ---------------------------------
+X * This function returns a new string with all
+X * alphabetic characters converted to lower case.
+X */
+X
+Xstring ConvertToLowerCase(string s);
+X
+X/*
+X * Function: ConvertToUpperCase
+X * Usage: s = ConvertToUpperCase(s);
+X * ---------------------------------
+X * This function returns a new string with all
+X * alphabetic characters converted to upper case.
+X */
+X
+Xstring ConvertToUpperCase(string s);
+X
+X/* Section 5 -- Functions for converting numbers to strings */
+X
+X/*
+X * Function: IntegerToString
+X * Usage: s = IntegerToString(n);
+X * ------------------------------
+X * This function converts an integer into the corresponding
+X * string of digits.  For example, IntegerToString(123)
+X * returns "123" as a string.
+X */
+X
+Xstring IntegerToString(int n);
+X
+X/*
+X * Function: StringToInteger
+X * Usage: n = StringToInteger(s);
+X * ------------------------------
+X * This function converts a string of digits into an integer.
+X * If the string is not a legal integer or contains extraneous
+X * characters, StringToInteger signals an error condition.
+X */
+X
+Xint StringToInteger(string s);
+X
+X/*
+X * Function: RealToString
+X * Usage: s = RealToString(d);
+X * ---------------------------
+X * This function converts a floating-point number into the
+X * corresponding string form.  For example, calling
+X * RealToString(23.45) returns "23.45".  The conversion is
+X * the same as that used for "%G" format in printf.
+X */
+X
+Xstring RealToString(double d);
+X
+X/*
+X * Function: StringToReal
+X * Usage: d = StringToReal(s);
+X * ---------------------------
+X * This function converts a string representing a real number
+X * into its corresponding value.  If the string is not a
+X * legal floating-point number or if it contains extraneous
+X * characters, StringToReal signals an error condition.
+X */
+X
+Xdouble StringToReal(string s);
+X
+X#endif
+END_OF_FILE
+if test 7407 -ne `wc -c <'cslib/strlib.h'`; then
+    echo shar: \"'cslib/strlib.h'\" unpacked with wrong size!
+fi
+# end of 'cslib/strlib.h'
+fi
+echo shar: End of shell archive.
+exit 0

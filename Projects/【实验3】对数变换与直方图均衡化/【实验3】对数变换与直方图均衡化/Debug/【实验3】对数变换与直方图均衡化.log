@@ -1,0 +1,8 @@
+﻿  源.cpp
+c:\users\asus\desktop\【实验3】对数变换与直方图均衡化\【实验3】对数变换与直方图均衡化\源.cpp(54): warning C4244: “=”: 从“double”转换到“BYTE”，可能丢失数据
+c:\users\asus\desktop\【实验3】对数变换与直方图均衡化\【实验3】对数变换与直方图均衡化\源.cpp(19): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+c:\users\asus\desktop\【实验3】对数变换与直方图均衡化\【实验3】对数变换与直方图均衡化\源.cpp(94): warning C4244: “=”: 从“double”转换到“BYTE”，可能丢失数据
+c:\users\asus\desktop\【实验3】对数变换与直方图均衡化\【实验3】对数变换与直方图均衡化\源.cpp(140): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+  【实验3】对数变换与直方图均衡化.vcxproj -> C:\Users\Asus\Desktop\【实验3】对数变换与直方图均衡化\Debug\【实验3】对数变换与直方图均衡化.exe

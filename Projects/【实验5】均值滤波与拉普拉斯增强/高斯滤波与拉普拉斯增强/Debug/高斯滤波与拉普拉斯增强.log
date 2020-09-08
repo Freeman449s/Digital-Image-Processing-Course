@@ -1,0 +1,4 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: 中间目录(Debug\)包含从另一个项目(均值滤波与拉普拉斯增强.vcxproj)共享的文件。   这会导致错误的清除和重新生成行为。
+  源.cpp
+e:\文件\文档\学校\大学\2年级\【需更新课件】dip\实验\【实验5】均值滤波与拉普拉斯增强\高斯滤波与拉普拉斯增强\源.cpp(65): warning C4244: “=”: 从“double”转换到“BYTE”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\【需更新课件】dip\实验\【实验5】均值滤波与拉普拉斯增强\高斯滤波与拉普拉斯增强\源.cpp(120): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据

@@ -1,0 +1,26 @@
+﻿  BMPOps.cpp
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(26): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(48): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(64): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(119): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(120): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(121): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(107): warning C4101: “layer”: 未引用的局部变量
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(147): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(151): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(155): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(130): warning C4101: “layer”: 未引用的局部变量
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(180): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(218): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(254): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(281): warning C4244: “=”: 从“double”转换到“BYTE”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(314): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+c:\users\asus\desktop\双边滤波\双边滤波\bmpops.cpp(347): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+  源.cpp
+  正在生成代码...
+  双边滤波.vcxproj -> C:\Users\Asus\Desktop\双边滤波\Debug\双边滤波.exe

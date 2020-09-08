@@ -1,0 +1,87 @@
+README file for the standard subdirectory
+Last modified on Thu Oct 20 13:13:48 1994 by eroberts
+________________________________________________________________________
+
+The standard directory contains a completely portable implementation of
+the cslib library for use with the textbook "The Art and Science of C: A
+Library-Based Approach" (Addison-Wesley, 1995).
+
+The graphics library provided in this directory is a machine-independent
+implementation that writes a data file called graphics.ps that can then
+be sent to a PostScript printer.  If you want to draw actual figures on
+the screen, you need a version of graphics.c that has been tailored for
+use with your specific system.  Several implementations of graphics.c
+are included in other subdirectories (unix-xwindows, mac-think-c, and
+pc-borland) of the cslib directory.
+
+INSTALLING THE STANDARD LIBRARIES
+
+First of all, make sure that the standard version of the libraries is
+the one you want to install.  If you are running on one of the platforms
+for which the full cslib library package is implemented (XWindows on
+Unix, Borland C/C++ on the IBM PC, or THINK C or Symantec C++ on the
+Macintosh), you should be installing the version that was designed for
+that system.  The cslib library produced by those packages is not only
+more powerful but also easier to install.
+
+The steps required to install the standard library package depend very
+much on what type of computer system and C compiler you have.  If you
+are running on a Unix system, you should adopt the following procedure:
+
+TO INSTALL THE STANDARD VERSION OF THE LIBRARIES ON A UNIX SYSTEM:
+
+1.  Use FTP to retrieve the file standard.shar to the home directory on
+    your machine.
+
+2.  Execute the standard.shar script by typing
+
+         sh standard.shar
+
+    This step creates a top-level directory called cslib that contains
+    all of the relevant files.
+
+3.  Connect to the cslib directory.
+
+4.  Rebuild the object files and libraries by typing
+
+         make
+
+5.  Copy the file gccx from the cslib directory into a directory on your
+    command search path.  If you will be the only person using the
+    libraries, you could put this file in your private command
+    directory, which is usually ~/bin.  If you are installing this
+    command for use by any user on the system, you will need to put it
+    in a public directory, such as /usr/local/bin.  For public
+    installation to work, your cslib directory must be readable by other
+    users.
+
+If you are not using a Unix system, you should instead adopt the
+following more general approach, filling in details as appropriate for
+your own hardware and software platform:
+
+1.  Use FTP to copy all of the files in the standard directory to a new
+    working directory on your machine.
+
+2.  Copy the .h files from this directory into the standard #include
+    path used by your compiler.
+
+3.  Compile each of the source files (exception.c, genlib.c, graphics.c,
+    random.c, simpio.c, and strlib.c) to produce the corresponding
+    object file.
+
+4.  Combine the object files together to produce a library file.  The
+    steps required to do so vary substantially from system to system.
+
+5.  If you are installing this package on a shared machine, copy the
+    library into some public directory where students can easily gain
+    access to it.
+
+NOTES AND DISCLAIMERS
+
+The cslib libraries are in the public domain and may be freely copied
+and distributed, although they remain under development.  No warranties
+are made concerning their correctness or stability, and no user support
+is guaranteed.  Bug reports and suggestions, however, are appreciated
+and may be sent to
+
+                      Eric Roberts <ericr@aw.com>

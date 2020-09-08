@@ -1,0 +1,50 @@
+﻿  BMPOps.cpp
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\bmpops.cpp(6): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\bmpops.cpp(26): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\bmpops.cpp(48): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\bmpops.cpp(64): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 参见“fopen”的声明
+  源.cpp
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(47): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(53): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(64): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(77): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(88): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(98): warning C4996: 'scanf': This function or variable may be unsafe. Consider using scanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(1274): note: 参见“scanf”的声明
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(179): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(180): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(181): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(188): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(189): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(190): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(276): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(282): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(288): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(294): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(300): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(326): warning C4244: “return”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(329): warning C4244: “return”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(338): warning C4244: “return”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(343): warning C4244: “return”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(352): warning C4101: “layer”: 未引用的局部变量
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(365): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(366): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(373): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(375): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(403): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(408): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(416): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(426): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(431): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+e:\文件\文档\学校\大学\2年级\dip\实验\【实验4】简单几何变换\【实验4】简单几何变换\源.cpp(440): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+  正在生成代码...
+  【实验4】简单几何变换.vcxproj -> E:\文件\文档\学校\大学\2年级\DIP\实验\【实验4】简单几何变换\Debug\【实验4】简单几何变换.exe
